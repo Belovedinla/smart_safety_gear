@@ -1,0 +1,8 @@
+detection:
+  confidence_threshold: 0.5
+  iou_threshold: 0.45
+  img_size: 640
+
+face_recognition:
+  tolerance: 0.5
+  model: "hog" # "hog" or "cnn"

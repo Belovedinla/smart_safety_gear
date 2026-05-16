@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+.env
+data/dataset/
+database/safety_logs.db
+models/*.pt
+!models/yolov8n_ppe.pt
+.DS_Store
