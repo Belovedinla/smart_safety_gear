@@ -40,42 +40,53 @@ elif choice == "Upload Media":
     uploaded_file = st.file_uploader("Upload Media", type=['jpg', 'png', 'jpeg', 'mp4'])
     
     if uploaded_file is not None:
-        file_ext = uploaded_file.name.split('.')[-1]
+        file_ext = uploaded_file.name.split('.')[-1].lower()
         
         tfile = tempfile.NamedTemporaryFile(delete=False, suffix='.'+file_ext)
         tfile.write(uploaded_file.read())
+        tfile.close()
         
-        if file_ext in ['jpg', 'jpeg', 'png']:
-            img = cv2.imread(tfile.name)
-            img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            
-            detections = yolo.detect(img)
-            bboxes = yolo.get_bboxes(detections)
-            face_locations, face_names = face_rec.recognize(img_rgb)
-            violations = engine.process_detections(img, bboxes, face_locations, face_names)
-            
-            annotated_frame = engine.draw_annotations(img, bboxes, violations, face_locations, face_names)
-            
-            st.image(cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB), channels="RGB", use_column_width=True)
-            
-        elif file_ext == 'mp4':
-            stframe = st.empty()
-            cap = cv2.VideoCapture(tfile.name)
-            while cap.isOpened():
-                ret, frame = cap.read()
-                if not ret:
-                    break
+        try:
+            if file_ext in ['jpg', 'jpeg', 'png']:
+                img = cv2.imread(tfile.name)
+                if img is None:
+                    st.error("Failed to read image file. It might be corrupted or in an unsupported format.")
+                else:
+                    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
                     
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                detections = yolo.detect(frame)
-                bboxes = yolo.get_bboxes(detections)
-                
-                face_locations, face_names = face_rec.recognize(frame_rgb)
-                violations = engine.process_detections(frame, bboxes, face_locations, face_names)
-                annotated_frame = engine.draw_annotations(frame, bboxes, violations, face_locations, face_names)
-                
-                stframe.image(cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB), channels="RGB")
-            cap.release()
+                    detections = yolo.detect(img)
+                    bboxes = yolo.get_bboxes(detections)
+                    face_locations, face_names = face_rec.recognize(img_rgb)
+                    violations = engine.process_detections(img, bboxes, face_locations, face_names)
+                    
+                    annotated_frame = engine.draw_annotations(img, bboxes, violations, face_locations, face_names)
+                    
+                    st.image(cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB), channels="RGB", use_column_width=True)
+                    
+            elif file_ext == 'mp4':
+                stframe = st.empty()
+                cap = cv2.VideoCapture(tfile.name)
+                if not cap.isOpened():
+                    st.error("Failed to read video file.")
+                else:
+                    while cap.isOpened():
+                        ret, frame = cap.read()
+                        if not ret:
+                            break
+                            
+                        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        detections = yolo.detect(frame)
+                        bboxes = yolo.get_bboxes(detections)
+                        
+                        face_locations, face_names = face_rec.recognize(frame_rgb)
+                        violations = engine.process_detections(frame, bboxes, face_locations, face_names)
+                        annotated_frame = engine.draw_annotations(frame, bboxes, violations, face_locations, face_names)
+                        
+                        stframe.image(cv2.cvtColor(annotated_frame, cv2.COLOR_BGR2RGB), channels="RGB")
+                    cap.release()
+        finally:
+            if os.path.exists(tfile.name):
+                os.remove(tfile.name)
 
 elif choice == "Live Camera":
     st.subheader("Live Monitoring")

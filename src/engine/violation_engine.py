@@ -2,8 +2,8 @@ import cv2
 
 class ViolationEngine:
     def __init__(self, db_manager):
-        # We require hardhat and vest based on the dataset classes
-        self.required_ppe = ['hardhat', 'vest'] 
+        # We require helmet based on the new pretrained model classes
+        self.required_ppe = ['helmet'] 
         self.db = db_manager
 
     def check_overlap(self, boxA, boxB):
@@ -29,22 +29,36 @@ class ViolationEngine:
         return False
 
     def process_detections(self, frame, detections, faces, face_names):
-        # In this dataset, there is no "Person" class. 
-        # We will use the detected Faces as our "People" base.
-        
         violations = []
+        
+        # Define acceptable equivalents
+        head_gear = ['hardhat', 'helmet']
+        body_gear = ['vest']
+        
+        # Check if current model supports vests by looking at all detections (heuristic)
+        # Or simply only require vest if 'vest' or 'hardhat' is in the detections (custom model)
+        # If we see 'helmet' (pretrained), we know it doesn't support vest.
+        model_is_pretrained = any(d['class_name'] in ['helmet', 'goggles', 'no_helmet'] for d in detections)
+        model_is_custom = any(d['class_name'] in ['hardhat', 'vest'] for d in detections)
+        
+        # If no detections at all, we assume custom model behavior (require both) just to be safe,
+        # or we just require Head Protection. Let's require Head Protection always, and Body Protection if custom.
+        requires_vest = model_is_custom or (not model_is_pretrained and not model_is_custom)
 
         for (top, right, bottom, left), person_name in zip(faces, face_names):
             face_box = [left, top, right, bottom]
             
-            # Find PPE associated with this person (face)
             person_ppe = []
             for d in detections:
-                if d['class_name'] in self.required_ppe or d['class_name'] in ['glasses', 'gloves']:
-                    if self.check_overlap(d['bbox'], face_box):
-                        person_ppe.append(d['class_name'])
+                if self.check_overlap(d['bbox'], face_box):
+                    person_ppe.append(d['class_name'])
             
-            missing = [req for req in self.required_ppe if req not in person_ppe]
+            missing = []
+            if not any(gear in person_ppe for gear in head_gear):
+                missing.append("Head Protection")
+            
+            if requires_vest and not any(gear in person_ppe for gear in body_gear):
+                missing.append("Vest")
             
             if missing:
                 missing_str = ", ".join(missing)
@@ -53,9 +67,8 @@ class ViolationEngine:
                     "name": person_name,
                     "missing": missing_str,
                     "risk": risk,
-                    "bbox": face_box # using face box for drawing the warning
+                    "bbox": face_box
                 })
-                # Log to DB
                 self.db.log_violation(person_name, missing_str, risk)
 
         return violations

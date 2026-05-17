@@ -48,11 +48,11 @@ class FaceRecognizer:
             print("No encodings found. Please run encode_faces() first.")
 
     def recognize(self, rgb_image, face_locations=None):
-        if not self.known_encodings:
-            return face_locations or [], []
-            
         if face_locations is None:
             face_locations = face_recognition.face_locations(rgb_image)
+            
+        if not self.known_encodings:
+            return face_locations, ["Unknown"] * len(face_locations)
         
         encodings = face_recognition.face_encodings(rgb_image, face_locations)
         names = []

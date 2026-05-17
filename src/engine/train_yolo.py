@@ -13,7 +13,7 @@ def train_model():
     # Train the model
     results = model.train(
         data=dataset_yaml,
-        epochs=3,
+        epochs=50,
         imgsz=640,
         batch=16,
         project='models',

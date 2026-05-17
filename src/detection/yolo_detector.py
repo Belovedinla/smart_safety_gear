@@ -1,13 +1,26 @@
-import cv2
+import os
 from ultralytics import YOLO
 
 class YoloDetector:
-    def __init__(self, model_path="models/yolov8_ppe/weights/best.pt", conf_thresh=0.5):
+    def __init__(self, model_path=None, conf_thresh=0.5):
+        custom_model_path = "models/yolov8_ppe/weights/best.pt"
+        pretrained_model_path = "models/yolov8_ppe/weights/pretrained.pt"
+        
+        # Try custom model first, then fallback to pretrained
+        if model_path is None:
+            if os.path.exists(custom_model_path):
+                model_path = custom_model_path
+            elif os.path.exists(pretrained_model_path):
+                model_path = pretrained_model_path
+            else:
+                raise FileNotFoundError("No YOLOv8 weights found. Please train the model or download the pretrained weights.")
+        
         try:
             self.model = YOLO(model_path)
+            print(f"Successfully loaded model: {model_path}")
         except Exception as e:
-            print(f"Custom model not found: {e}. Loading standard yolov8n.pt")
-            self.model = YOLO("yolov8n.pt")
+            print(f"Failed to load custom model: {e}")
+            raise e
             
         self.conf_thresh = conf_thresh
 
