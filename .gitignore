@@ -216,3 +216,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local runtime and dataset artifacts
+data/
+database/
+
+# Local database and dataset
+data/
+database/
+models/
