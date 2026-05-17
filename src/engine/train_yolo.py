@@ -13,10 +13,10 @@ def train_model():
     # Train the model
     results = model.train(
         data=dataset_yaml,
-        epochs=50,
+        epochs=3,
         imgsz=640,
         batch=16,
-        project='../../models',
+        project='models',
         name='yolov8_ppe',
         exist_ok=True
     )
